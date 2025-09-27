@@ -429,7 +429,8 @@ contract UniversalPrivacyHook is BaseHook, IUnlockCallback, ReentrancyGuardTrans
                 encryptedIntents
             );
 
-            ISwapManager(swapManager).finalizeBatch(batchId, batchData);
+            // ISwapManager(swapManager).finalizeBatch(batchId, batchData);
+            // TODO: Implement batch finalization when the method is available in ISwapManager
         }
 
         // Start new batch for the pool
