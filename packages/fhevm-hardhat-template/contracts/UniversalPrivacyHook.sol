@@ -263,6 +263,12 @@ contract UniversalPrivacyHook is BaseHook, IUnlockCallback, ReentrancyGuardTrans
 
         // Create new batch if needed (first batch or interval passed)
         if (batchId == bytes32(0) || block.number >= batch.createdBlock + BATCH_INTERVAL) {
+            // Finalize the previous batch if it exists and has intents
+            if (batchId != bytes32(0) && batch.intentIds.length > 0 && !batch.finalized) {
+                _finalizeBatch(poolId, batchId);
+            }
+
+            // Create new batch
             batchId = keccak256(abi.encode(poolId, block.number, block.timestamp));
             currentBatchId[poolId] = batchId;
             batches[batchId] = Batch({
@@ -386,7 +392,7 @@ contract UniversalPrivacyHook is BaseHook, IUnlockCallback, ReentrancyGuardTrans
     // =============================================================
 
     /**
-     * @dev Finalize a batch and submit to AVS for processing
+     * @dev Finalize a batch and submit to AVS for processing (external callable)
      * @param poolId The pool ID to finalize batch for
      */
     function finalizeBatch(PoolId poolId) external {
@@ -397,6 +403,17 @@ contract UniversalPrivacyHook is BaseHook, IUnlockCallback, ReentrancyGuardTrans
         require(!batch.finalized, "Already finalized");
         require(block.number >= batch.createdBlock + BATCH_INTERVAL, "Batch not ready");
         require(batch.intentIds.length > 0, "Empty batch");
+
+        _finalizeBatch(poolId, batchId);
+    }
+
+    /**
+     * @dev Internal function to finalize a batch
+     * @param poolId The pool ID
+     * @param batchId The batch ID to finalize
+     */
+    function _finalizeBatch(PoolId poolId, bytes32 batchId) internal {
+        Batch storage batch = batches[batchId];
 
         // Mark as finalized
         batch.finalized = true;
@@ -429,8 +446,7 @@ contract UniversalPrivacyHook is BaseHook, IUnlockCallback, ReentrancyGuardTrans
                 encryptedIntents
             );
 
-            // ISwapManager(swapManager).finalizeBatch(batchId, batchData);
-            // TODO: Implement batch finalization when the method is available in ISwapManager
+            ISwapManager(swapManager).finalizeBatch(batchId, batchData);
         }
 
         // Start new batch for the pool
