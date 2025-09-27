@@ -30,4 +30,11 @@ interface ISwapManager {
      * @return Selected operator addresses
      */
     function selectOperatorsForBatch(bytes32 batchId) external returns (address[] memory);
+
+    /**
+     * @dev Finalize a batch with processed data
+     * @param batchId Batch identifier
+     * @param batchData Processed batch data
+     */
+    function finalizeBatch(bytes32 batchId, bytes calldata batchData) external;
 }
