@@ -1,7 +1,7 @@
 
 /*
   This file is auto-generated.
-  By commands: 'npx hardhat deploy' or 'npx hardhat node'
+  Command: 'npm run genabi'
 */
 export const FHECounterABI = {
   "abi": [

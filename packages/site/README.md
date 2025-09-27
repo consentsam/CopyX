@@ -28,14 +28,29 @@ Follow the step-by-step guide in the [Hardhat + MetaMask](https://docs.metamask.
 
 ## Install
 
+### Automatic install
+
 1. Clone this repository.
 2. From the repo root, run:
-
 ```sh
+# - git clone "https://github.com/zama-ai/fhevm-hardhat-template.git" into <root>/packages
+# - npm install
+# - auto-depoy on hardhat node
+node ./scripts/install.mjs
+```
+
+### Manual install
+
+1. Clone this repository.
+2. From the repo root, execute the following:
+```sh
+cd ./packages
+git clone "https://github.com/zama-ai/fhevm-hardhat-template.git"
+cd ..
 npm install
 ```
 
-## Quickstart
+## Setup
 
 1. Setup your hardhat environment variables:
 
@@ -44,42 +59,52 @@ Follow the detailed instructions in the [FHEVM documentation](https://docs.zama.
 2. Start a local Hardhat node (new terminal):
 
 ```sh
+cd packages/fhevm-hardhat-template
+npx hardhat node --verbose
 # Default RPC: http://127.0.0.1:8545  | chainId: 31337
-npm run hardhat-node
 ```
 
-3. Launch the frontend in mock mode:
+3. Deploy `FHECounter` to the local node:
+
+```sh
+# still in packages/fhevm-hardhat-template
+npx hardhat deploy --network localhost
+```
+
+4. Deploy to Sepolia:
+
+Follows instructions in the [FHEVM documentation to setup your Hardhat project for Sepolia](https://docs.zama.ai/protocol/solidity-guides/getting-started/setup#set-up-the-hardhat-configuration-variables-optional)
+
+```sh
+# still in packages/fhevm-hardhat-template
+npx hardhat deploy --network sepolia
+```
+
+## Run
+
+1. Start a local Hardhat node (new terminal):
+
+```sh
+npx hardhat node --verbose
+```
+
+2. Open your Browser
+
+3. From your browser, open the MetaMask extension and select the Hardhat network
+
+4. From the `<root>/packages/site` run
 
 ```sh
 npm run dev:mock
 ```
+4. In your browser open `http://localhost:3000`
 
-4. Start your browser with the Metamask extension installed and open http://localhost:3000
-
-5. Open the Metamask extension to connect to the local Hardhat node
-   i. Select Add network.
-   ii. Select Add a network manually.
-   iii. Enter your Hardhat Network RPC URL, http://127.0.0.1:8545 (or http://localhost:8545).
-   iv. Enter your Hardhat Network chain ID, 31337 (or 0x539 in hexadecimal format).
-
-## Run on Sepolia
-
-1. Deploy your contract on Sepolia Testnet
-
-```sh
-npm run deploy:sepolia
-```
-
-2. In your browser open `http://localhost:3000`
-
-3. Open the Metamask extension to connect to the Sepolia network
 
 ## How to fix Hardhat Node + Metamask Errors ?
 
 When using MetaMask as a wallet provider with a development node like Hardhat, you may encounter two common types of errors:
 
 ### 1. ⚠️ Nonce Mismatch ❌💥
-
 MetaMask tracks wallet nonces (the number of transactions sent from a wallet). However, if you restart your Hardhat node, the nonce is reset on the dev node, but MetaMask does not update its internal nonce tracking. This discrepancy causes a nonce mismatch error.
 
 ### 2. ⚠️ View Function Call Result Mismatch ❌💥
@@ -109,14 +134,14 @@ By following these steps, you can ensure that MetaMask syncs correctly with your
 
 ### Key Files/Folders
 
-- **`<root>/packages/site/fhevm`**: This folder contains the essential hooks needed to interact with FHEVM-enabled smart contracts. It is meant to be easily copied and integrated into any FHEVM + React project.
+* **`<root>/packages/site/fhevm`**: This folder contains the essential hooks needed to interact with FHEVM-enabled smart contracts. It is meant to be easily copied and integrated into any FHEVM + React project.
 
-- **`<root>/packages/site/hooks/useFHECounter.tsx`**: A simple React custom hook that demonstrates how to use the `useFhevm` hook in a basic use case, serving as an example of integration.
+* **`<root>/packages/site/hooks/useFHECounter.tsx`**: A simple React custom hook that demonstrates how to use the `useFhevm` hook in a basic use case, serving as an example of integration.
 
 ### Secondary Files/Folders
 
-- **`<root>/packages/site/hooks/metamask`**: This folder includes hooks designed to manage the MetaMask Wallet provider. These hooks can be easily adapted or replaced to support other wallet providers, following the EIP-6963 standard,
-- Additionally, the project is designed to be flexible, allowing developers to easily replace `ethers.js` with a more React-friendly library of their choice, such as `Wagmi`.
+* **`<root>/packages/site/hooks/metamask`**: This folder includes hooks designed to manage the MetaMask Wallet provider. These hooks can be easily adapted or replaced to support other wallet providers, following the EIP-6963 standard,
+* Additionally, the project is designed to be flexible, allowing developers to easily replace `ethers.js` with a more React-friendly library of their choice, such as `Wagmi`.
 
 ## Documentation
 
