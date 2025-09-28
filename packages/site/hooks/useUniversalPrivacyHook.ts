@@ -270,8 +270,9 @@ export const useUniversalPrivacyHook = () => {
       }
       if (!targetAddress) return [];
       
-      // Use Ankr public RPC for reliable data fetching
-      const ankrProvider = new ethers.JsonRpcProvider('https://1rpc.io/sepolia');
+      // Use Ankr RPC with API key from environment
+      const ankrApiKey = process.env.NEXT_PUBLIC_ANKR_API_KEY || '';
+      const ankrProvider = new ethers.JsonRpcProvider(`https://rpc.ankr.com/eth_sepolia/${ankrApiKey}`);
       const hook = new ethers.Contract(CONTRACTS.UniversalPrivacyHook, UniversalPrivacyHookABI.abi, ankrProvider);
       
       // Calculate block range for last 1 hour (approximately 300 blocks on Sepolia)
