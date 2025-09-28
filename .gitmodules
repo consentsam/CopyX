@@ -1,0 +1,3 @@
+[submodule "packages/copy-x-trading"]
+	path = packages/copy-x-trading
+	url = https://github.com/consentsam/copy-x-trading
