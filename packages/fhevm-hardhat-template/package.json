@@ -81,6 +81,9 @@
     "prettier:check": "prettier --check \"**/*.{js,json,md,sol,ts,yml}\"",
     "prettier:write": "prettier --write \"**/*.{js,json,md,sol,ts,yml}\"",
     "test": "hardhat test",
+    "deploy:rsk": "hardhat run scripts/deployToRootstock.ts --network rskTestnet",
+    "deploy:rsk:mainnet": "hardhat run scripts/deployToRootstock.ts --network rskMainnet",
+    "verify:rsk": "hardhat verify --network rskTestnet",
     "test:sepolia": "hardhat test --network sepolia",
     "build:ts": "tsc --project tsconfig.json",
     "typechain": "cross-env TS_NODE_TRANSPILE_ONLY=true hardhat typechain"

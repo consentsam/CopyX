@@ -23,6 +23,10 @@ const MNEMONIC: string = vars.get("MNEMONIC", "test test test test test test tes
 const INFURA_API_KEY: string = vars.get("INFURA_API_KEY", "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz");
 const ANKR_API_KEY: string = process.env.ANKR_API_KEY || "";
 
+// Rootstock configuration
+const RSK_TESTNET_RPC_URL: string = process.env.RSK_TESTNET_RPC_URL || "https://public-node.testnet.rsk.co";
+const RSK_MAINNET_RPC_URL: string = process.env.RSK_MAINNET_RPC_URL || "https://public-node.rsk.co";
+
 const config: HardhatUserConfig = {
   defaultNetwork: "hardhat",
   namedAccounts: {
@@ -31,7 +35,28 @@ const config: HardhatUserConfig = {
   etherscan: {
     apiKey: {
       sepolia: vars.get("ETHERSCAN_API_KEY", ""),
+      // Rootstock blockscout doesn't require a real API key
+      rsktestnet: "dummy-api-key",
+      rskmainnet: "dummy-api-key",
     },
+    customChains: [
+      {
+        network: "rsktestnet",
+        chainId: 31,
+        urls: {
+          apiURL: "https://rootstock-testnet.blockscout.com/api/",
+          browserURL: "https://rootstock-testnet.blockscout.com/",
+        }
+      },
+      {
+        network: "rskmainnet",
+        chainId: 30,
+        urls: {
+          apiURL: "https://rootstock.blockscout.com/api/",
+          browserURL: "https://rootstock.blockscout.com/",
+        }
+      },
+    ]
   },
   gasReporter: {
     currency: "USD",
@@ -62,6 +87,26 @@ const config: HardhatUserConfig = {
       },
       chainId: 11155111,
       url: `https://rpc.ankr.com/eth_sepolia/${ANKR_API_KEY}`,
+    },
+    rskTestnet: {
+      accounts: {
+        mnemonic: MNEMONIC,
+        path: "m/44'/60'/0'/0/",
+        count: 10,
+      },
+      chainId: 31,
+      gasPrice: 60000000, // 0.06 gwei
+      url: RSK_TESTNET_RPC_URL,
+    },
+    rskMainnet: {
+      accounts: {
+        mnemonic: MNEMONIC,
+        path: "m/44'/60'/0'/0/",
+        count: 10,
+      },
+      chainId: 30,
+      gasPrice: 60000000, // 0.06 gwei
+      url: RSK_MAINNET_RPC_URL,
     },
   },
   paths: {
