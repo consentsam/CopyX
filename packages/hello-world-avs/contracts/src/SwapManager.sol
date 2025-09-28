@@ -13,7 +13,10 @@ import {ISwapManager} from "./ISwapManager.sol";
 import {SimpleBoringVault} from "./SimpleBoringVault.sol";
 import "@eigenlayer/contracts/interfaces/IRewardsCoordinator.sol";
 import {IAllocationManager} from "@eigenlayer/contracts/interfaces/IAllocationManager.sol";
-import {FHE} from "@fhevm/contracts/FHE.sol";
+
+import {FHE} from "@fhevm/solidity/lib/FHE.sol";
+import { IEntropyConsumer } from "@pythnetwork/entropy-sdk-solidity/IEntropyConsumer.sol";
+import { IEntropyV2 } from "@pythnetwork/entropy-sdk-solidity/IEntropyV2.sol";
 
 // Currency type wrapper to match Uniswap V4
 type Currency is address;
@@ -49,7 +52,7 @@ interface IUniversalPrivacyHook {
  * @notice Manages operator selection, FHE decryption, and batch settlement
  * @dev Operators decrypt intents, match orders off-chain, and submit consensus-based settlements
  */
-contract SwapManager is ECDSAServiceManagerBase, ISwapManager {
+contract SwapManager is ECDSAServiceManagerBase, ISwapManager, IEntropyConsumer {
     using ECDSAUpgradeable for bytes32;
 
     // Committee configuration
@@ -72,6 +75,14 @@ contract SwapManager is ECDSAServiceManagerBase, ISwapManager {
 
     // Max time for operators to respond with settlement
     uint32 public immutable MAX_RESPONSE_INTERVAL_BLOCKS;
+
+    // Pyth Entropy integration
+    IEntropyV2 public entropy;
+
+    // Mapping to track pending entropy requests
+    mapping(uint64 => bytes32) public pendingEntropyRequests; // sequenceNumber => batchId
+    mapping(bytes32 => bool) public batchAwaitingEntropy; // batchId => isWaiting
+    mapping(bytes32 => bytes) public pendingBatchData; // batchId => encoded batch data
 
     // ========================================= UEI STATE VARIABLES =========================================
 
@@ -101,7 +112,8 @@ contract SwapManager is ECDSAServiceManagerBase, ISwapManager {
         address _rewardsCoordinator,
         address _delegationManager,
         address _allocationManager,
-        uint32 _maxResponseIntervalBlocks
+        uint32 _maxResponseIntervalBlocks,
+        address _entropyAddress
     )
         ECDSAServiceManagerBase(
             _avsDirectory,
@@ -112,6 +124,7 @@ contract SwapManager is ECDSAServiceManagerBase, ISwapManager {
         )
     {
         MAX_RESPONSE_INTERVAL_BLOCKS = _maxResponseIntervalBlocks;
+        entropy = IEntropyV2(_entropyAddress);
     }
 
     function initialize(address initialOwner, address _rewardsInitiator) external initializer {
@@ -157,9 +170,33 @@ contract SwapManager is ECDSAServiceManagerBase, ISwapManager {
     function finalizeBatch(
         bytes32 batchId,
         bytes calldata batchData
-    ) external override onlyAuthorizedHook {
+    ) external payable override onlyAuthorizedHook {
         require(batches[batchId].status == BatchStatus.Collecting ||
                 batches[batchId].batchId == bytes32(0), "Invalid batch status");
+        require(!batchAwaitingEntropy[batchId], "Batch already awaiting entropy");
+
+        // Store batch data for processing after entropy callback
+        pendingBatchData[batchId] = batchData;
+        batchAwaitingEntropy[batchId] = true;
+
+        // Request entropy for operator selection
+        uint256 fee = entropy.getFeeV2();
+        require(msg.value >= fee, "Insufficient entropy fee");
+
+        uint64 sequenceNumber = entropy.requestV2{ value: fee }();
+        pendingEntropyRequests[sequenceNumber] = batchId;
+
+        emit EntropyRequested(batchId, sequenceNumber);
+    }
+
+    /**
+     * @notice Process batch after receiving entropy
+     * @param batchId The batch identifier
+     * @param randomNumber The random number from entropy
+     */
+    function _processBatchWithEntropy(bytes32 batchId, bytes32 randomNumber) internal {
+        bytes memory batchData = pendingBatchData[batchId];
+        require(batchData.length > 0, "No pending batch data");
 
         // Decode batch data from UniversalPrivacyHook format:
         // abi.encode(batchId, batch.intentIds, poolId, address(this), encryptedIntents)
@@ -173,17 +210,16 @@ contract SwapManager is ECDSAServiceManagerBase, ISwapManager {
 
         // Verify batch ID matches
         require(decodedBatchId == batchId, "Batch ID mismatch");
-        require(hookAddress == msg.sender, "Hook address mismatch");
 
-        // Select operators for this batch
-        address[] memory selectedOps = _selectOperatorsForBatch(batchId);
+        // Select operators using entropy-based randomness
+        address[] memory selectedOps = _selectOperatorsWithEntropy(batchId, randomNumber);
 
         // Create batch record
         batches[batchId] = Batch({
             batchId: batchId,
             intentIds: intentIds,
             poolId: poolId,
-            hook: msg.sender,
+            hook: hookAddress,
             createdBlock: uint32(block.number),
             finalizedBlock: uint32(block.number),
             status: BatchStatus.Processing
@@ -215,6 +251,10 @@ contract SwapManager is ECDSAServiceManagerBase, ISwapManager {
             operatorSelectedForBatch[batchId][selectedOps[i]] = true;
             emit OperatorSelectedForBatch(batchId, selectedOps[i]);
         }
+
+        // Cleanup
+        delete pendingBatchData[batchId];
+        delete batchAwaitingEntropy[batchId];
 
         emit BatchFinalized(batchId, batchData);
     }
@@ -286,34 +326,37 @@ contract SwapManager is ECDSAServiceManagerBase, ISwapManager {
     }
     
     /**
-     * @notice Deterministically select operators for a batch
+     * @notice Select operators using entropy-based randomness
+     * @param batchId The batch identifier
+     * @param randomNumber The random number from Pyth Entropy
      */
-    function _selectOperatorsForBatch(bytes32 batchId) internal view returns (address[] memory) {
+    function _selectOperatorsWithEntropy(bytes32 batchId, bytes32 randomNumber) internal view returns (address[] memory) {
         uint256 operatorCount = registeredOperators.length;
-        
+
         // If not enough operators, return all available
         if (operatorCount <= COMMITTEE_SIZE) {
             return registeredOperators;
         }
-        
-        // Use batch ID and block data for deterministic randomness
-        uint256 seed = uint256(keccak256(abi.encode(block.prevrandao, block.number, batchId)));
-        
+
+        // Use entropy-provided randomness
+        uint256 seed = uint256(randomNumber);
+
         address[] memory selectedOps = new address[](COMMITTEE_SIZE);
         bool[] memory selected = new bool[](operatorCount);
-        
+
         for (uint256 i = 0; i < COMMITTEE_SIZE; i++) {
-            uint256 randomIndex = uint256(keccak256(abi.encode(seed, i))) % operatorCount;
-            
+            // Generate new random index for each operator using the seed
+            uint256 randomIndex = uint256(keccak256(abi.encode(seed, batchId, i))) % operatorCount;
+
             // Linear probing to avoid duplicates
             while (selected[randomIndex]) {
                 randomIndex = (randomIndex + 1) % operatorCount;
             }
-            
+
             selected[randomIndex] = true;
             selectedOps[i] = registeredOperators[randomIndex];
         }
-        
+
         return selectedOps;
     }
     
@@ -459,7 +502,6 @@ contract SwapManager is ECDSAServiceManagerBase, ISwapManager {
         bytes calldata inputProof,
         address[] memory selectedOperators
     ) internal {
-        try {
             // Decode the blob to extract encrypted handles
             (
                 bytes32 encDecoder,    // eaddress handle
@@ -488,11 +530,6 @@ contract SwapManager is ECDSAServiceManagerBase, ISwapManager {
                     FHE.allow(arg, operator);
                 }
             }
-
-        } catch {
-            // If decoding fails, continue without granting permissions
-            // This maintains compatibility with old blob formats
-        }
     }
 
     /**
@@ -610,4 +647,64 @@ contract SwapManager is ECDSAServiceManagerBase, ISwapManager {
     function getUEIExecution(bytes32 intentId) external view returns (UEIExecution memory) {
         return ueiExecutions[intentId];
     }
+
+    // ============================= ENTROPY IMPLEMENTATION =============================
+
+    /**
+     * @notice Callback function called by Entropy contract with the random number
+     * @param sequenceNumber The sequence number of the request
+     * @param provider The address of the entropy provider
+     * @param randomNumber The generated random number
+     */
+    function entropyCallback(
+        uint64 sequenceNumber,
+        address provider,
+        bytes32 randomNumber
+    ) internal override {
+        // Ensure only the entropy contract can call this
+        require(msg.sender == address(entropy), "Only entropy contract can call");
+        // Get the batch ID associated with this entropy request
+        bytes32 batchId = pendingEntropyRequests[sequenceNumber];
+        require(batchId != bytes32(0), "Invalid sequence number");
+
+        // Process the batch with the received entropy
+        _processBatchWithEntropy(batchId, randomNumber);
+
+        // Cleanup entropy request mapping
+        delete pendingEntropyRequests[sequenceNumber];
+
+        emit EntropyCallbackReceived(batchId, randomNumber);
+    }
+
+    /**
+     * @notice Returns the address of the entropy contract
+     * @dev Required by IEntropyConsumer interface
+     * @return The address of the entropy contract
+     */
+    function getEntropy() internal view override returns (address) {
+        return address(entropy);
+    }
+
+    /**
+     * @notice Update the entropy contract address
+     * @param _entropyAddress The new entropy contract address
+     */
+    function setEntropyAddress(address _entropyAddress) external onlyOwner {
+        entropy = IEntropyV2(_entropyAddress);
+        emit EntropyAddressUpdated(_entropyAddress);
+    }
+
+    /**
+     * @notice Get the current entropy fee
+     * @return The fee required for an entropy request
+     */
+    function getEntropyFee() external view returns (uint256) {
+        return entropy.getFeeV2();
+    }
+
+    // ============================= EVENTS =============================
+
+    event EntropyRequested(bytes32 indexed batchId, uint64 sequenceNumber);
+    event EntropyCallbackReceived(bytes32 indexed batchId, bytes32 randomNumber);
+    event EntropyAddressUpdated(address indexed newEntropyAddress);
 }

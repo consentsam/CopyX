@@ -1,7 +1,7 @@
 
 /*
   This file is auto-generated.
-  Command: 'npm run genabi'
+  By commands: 'npx hardhat deploy' or 'npx hardhat node'
 */
 export const FHECounterAddresses = { 
   "11155111": { address: "0x0000000000000000000000000000000000000000", chainId: 11155111, chainName: "sepolia" },

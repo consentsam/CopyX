@@ -24,15 +24,20 @@
     "test": "NODE_OPTIONS=\"$NODE_OPTIONS --experimental-vm-modules\" npx jest"
   },
   "dependencies": {
+    "@pythnetwork/entropy-sdk-solidity": "^2.0.0",
+    "@zama-fhe/relayer-sdk": "^0.2.0",
     "bignumber.js": "^9.3.1",
     "dotenv": "^10.0.0",
-    "ethers": "^6.15.0",
-    "@zama-fhe/relayer-sdk": "^0.2.0"
+    "ethers": "^6.15.0"
   },
   "devDependencies": {
+    "@fhevm/solidity": "^0.8.0",
+    "@openzeppelin/contracts": "^5.4.0",
     "@types/jest": "^29.5.13",
     "@types/node": "^20.12.12",
     "@viem/anvil": "^0.0.10",
+    "@zama-fhe/oracle-solidity": "^0.1.0",
+    "encrypted-types": "^0.0.4",
     "jest": "^29.7.0",
     "ts-jest": "^29.2.5",
     "ts-node": "^10.9.2",

@@ -26,6 +26,7 @@
   "dependencies": {
     "@fhevm/solidity": "^0.8.0",
     "@openzeppelin/contracts": "^5.4.0",
+    "@pythnetwork/pyth-sdk-solidity": "^4.2.0",
     "@uniswap/v4-core": "^1.0.2",
     "@uniswap/v4-periphery": "^1.0.3",
     "@zama-fhe/oracle-solidity": "^0.1.0",

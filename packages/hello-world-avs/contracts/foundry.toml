@@ -14,6 +14,8 @@ remappings = [
     "@openzeppelin/=lib/eigenlayer-middleware/lib/openzeppelin-contracts/",
     "@openzeppelin-upgrades/=lib/eigenlayer-middleware/lib/openzeppelin-contracts-upgradeable/",
     "@fhenixprotocol/=lib/fhenix-contracts/",
+    "@fhevm/solidity/=../../../../node_modules/@fhevm/solidity/",
+    "@pythnetwork/entropy-sdk-solidity/=node_modules/@pythnetwork/entropy-sdk-solidity/",
     "forge-std/=lib/forge-std/src/",
 ]
 

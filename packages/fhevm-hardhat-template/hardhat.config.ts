@@ -11,11 +11,17 @@ import "solidity-coverage";
 
 import "./tasks/accounts";
 import "./tasks/FHECounter";
+import "./tasks/UniversalPrivacyHook";
+
+// Load environment variables
+import * as dotenv from "dotenv";
+dotenv.config();
 
 // Run 'npx hardhat vars setup' to see the list of variables that need to be set
 
 const MNEMONIC: string = vars.get("MNEMONIC", "test test test test test test test test test test test junk");
 const INFURA_API_KEY: string = vars.get("INFURA_API_KEY", "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz");
+const ANKR_API_KEY: string = process.env.ANKR_API_KEY || "";
 
 const config: HardhatUserConfig = {
   defaultNetwork: "hardhat",
@@ -55,7 +61,7 @@ const config: HardhatUserConfig = {
         count: 10,
       },
       chainId: 11155111,
-      url: `https://sepolia.infura.io/v3/${INFURA_API_KEY}`,
+      url: `https://rpc.ankr.com/eth_sepolia/${ANKR_API_KEY}`,
     },
   },
   paths: {
