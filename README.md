@@ -1,134 +1,211 @@
-# FHEVM React Template
+# CopyX - Privacy-Preserving Copy Trading Platform
 
-The FHEVM React Template is an ultra-minimal React project for building and running an FHEVM-enabled dApp.
-It works alongside the [fhevm-hardhat-template](https://github.com/zama-ai/fhevm-hardhat-template)
-and provides a simple development frontend for interacting with the `FHECounter.sol` contract.
+CopyX is a revolutionary decentralized copy trading platform that leverages Fully Homomorphic Encryption (FHE) to enable privacy-preserving trade execution on Ethereum. Built on EigenLayer's AVS infrastructure, it combines encrypted intent processing with automated market making through Uniswap V4 hooks.
 
-This template also illustrates how to run your FHEVM-dApp on both Sepolia as well as a local Hardhat Node (much faster).
+## 🏗️ Architecture Overview
 
-## Features
+CopyX consists of three main components working in harmony:
 
-- **@zama-fhe/relayer-sdk**: Fully Homomorphic Encryption for Ethereum Virtual Machine
-- **React**: Modern UI framework for building interactive interfaces
-- **Next.js**: Next-generation frontend build tool
-- **Tailwind**: Utility-first CSS framework for rapid UI development
+### 1. **Universal Privacy Hook (Uniswap V4)**
+- Custom hook that intercepts swap operations
+- Batches encrypted trading intents using FHE
+- Manages liquidity pools with 80/20 vault allocation strategy
+- Enables privacy-preserving order matching without revealing trade details
 
-## Requirements
+### 2. **SwapManager AVS (EigenLayer)**
+- Decentralized operator network for processing encrypted intents
+- Uses **Pyth Entropy** for verifiable randomness in operator selection
+- Implements Universal Encrypted Intent (UEI) framework
+- Consensus-based settlement with multi-operator attestation
 
-- You need to have Metamask browser extension installed on your browser.
+### 3. **SimpleBoringVault**
+- Strategy execution vault with **Pyth Price Oracle** integration
+- USD-based accounting system (not token-based)
+- Real-time price feeds for accurate portfolio valuation
+- Manages 80% of liquidity for copy trading strategies
 
-## Local Hardhat Network (to add in MetaMask)
+## 🔐 Key Technologies
 
-Follow the step-by-step guide in the [Hardhat + MetaMask](https://docs.metamask.io/wallet/how-to/run-devnet/) documentation to set up your local devnet using Hardhat and MetaMask.
+### **Fully Homomorphic Encryption (FHE)**
+- **@zama-ai/fhevm**: Enables computation on encrypted data
+- Trade amounts and parameters remain encrypted throughout execution
+- Zero-knowledge privacy for all trading activities
 
-- Name: Hardhat
-- RPC URL: http://127.0.0.1:8545
-- Chain ID: 31337
-- Currency symbol: ETH
+### **Pyth Network Integration**
+- **Pyth Entropy**: Provides verifiable randomness for fair operator selection
+  - Replaces predictable block hash randomness
+  - Ensures unbiased, manipulation-resistant operator committee formation
+  - Asynchronous callback mechanism for true randomness
 
-## Install
+- **Pyth Price Oracles**: Real-time price feeds for USD-based accounting
+  - Accurate portfolio valuation across multiple tokens
+  - Protection against price manipulation
+  - Sub-second price updates with confidence intervals
 
-1. Clone this repository.
-2. From the repo root, run:
+### **Uniswap V4 Hooks**
+- Custom `UniversalPrivacyHook` for encrypted swap processing
+- Batch settlement mechanism for gas efficiency
+- Internal balance tracking for reduced on-chain transactions
+- Seamless integration with existing Uniswap V4 liquidity
 
-```sh
+### **EigenLayer AVS**
+- Decentralized operator network with stake-based security
+- ECDSA-based consensus mechanism
+- Slashable security guarantees
+- Restaked ETH for enhanced economic security
+
+## 🚀 Features
+
+- **Privacy-First Trading**: All trade details remain encrypted
+- **Copy Trading**: Follow successful traders without revealing strategies
+- **Fair Operator Selection**: Pyth Entropy ensures unbiased randomness
+- **USD-Based Accounting**: Accurate portfolio tracking with Pyth oracles
+- **Batch Processing**: Gas-efficient settlement of multiple trades
+- **Decentralized Execution**: No single point of failure or control
+
+## 📋 Requirements
+
+- Node.js v18+
+- Hardhat
+- MetaMask browser extension
+- Foundry (for contract development)
+
+## 🛠️ Installation
+
+```bash
+# Clone the repository
+git clone https://github.com/consentsam/CopyX.git
+cd CopyX
+
+# Install dependencies
 npm install
+
+# Install Pyth SDK
+npm install @pythnetwork/pyth-sdk-solidity
+npm install @pythnetwork/entropy-sdk-solidity
 ```
 
-## Quickstart
+## 🔧 Configuration
 
-1. Setup your hardhat environment variables:
+### Local Development
 
-Follow the detailed instructions in the [FHEVM documentation](https://docs.zama.ai/protocol/solidity-guides/getting-started/setup#set-up-the-hardhat-configuration-variables-optional) to setup `MNEMONIC` + `INFURA_API_KEY` Hardhat environment variables
-
-2. Start a local Hardhat node (new terminal):
-
-```sh
-# Default RPC: http://127.0.0.1:8545  | chainId: 31337
+1. **Start Hardhat Node**:
+```bash
 npm run hardhat-node
 ```
 
-3. Launch the frontend in mock mode:
-
-```sh
-npm run dev:mock
+2. **Deploy Contracts**:
+```bash
+npm run deploy:local
 ```
 
-4. Start your browser with the Metamask extension installed and open http://localhost:3000
+3. **Configure MetaMask**:
+- Network Name: Hardhat
+- RPC URL: http://127.0.0.1:8545
+- Chain ID: 31337
+- Currency: ETH
 
-5. Open the Metamask extension to connect to the local Hardhat node
-   i. Select Add network.
-   ii. Select Add a network manually.
-   iii. Enter your Hardhat Network RPC URL, http://127.0.0.1:8545 (or http://localhost:8545).
-   iv. Enter your Hardhat Network chain ID, 31337 (or 0x539 in hexadecimal format).
+### Testnet Deployment (Sepolia)
 
-## Run on Sepolia
+1. **Set Environment Variables**:
+```bash
+cp .env.example .env
+# Add your MNEMONIC, INFURA_API_KEY, PYTH_ENDPOINT
+```
 
-1. Deploy your contract on Sepolia Testnet
-
-```sh
+2. **Deploy to Sepolia**:
+```bash
 npm run deploy:sepolia
 ```
 
-2. In your browser open `http://localhost:3000`
+## 📁 Project Structure
 
-3. Open the Metamask extension to connect to the Sepolia network
+```
+CopyX/
+├── packages/
+│   ├── hello-world-avs/       # AVS and smart contracts
+│   │   ├── contracts/
+│   │   │   ├── SwapManager.sol      # AVS with Pyth Entropy
+│   │   │   ├── SimpleBoringVault.sol # Vault with Pyth Oracles
+│   │   │   └── UniversalPrivacyHook.sol
+│   │   └── scripts/
+│   ├── fhevm-hardhat-template/ # FHE contract templates
+│   └── site/                    # React frontend
+│       ├── fhevm/              # FHE integration hooks
+│       └── hooks/              # React hooks for contract interaction
+```
 
-## How to fix Hardhat Node + Metamask Errors ?
+## 🔑 Smart Contract Addresses
 
-When using MetaMask as a wallet provider with a development node like Hardhat, you may encounter two common types of errors:
+### Mainnet (Coming Soon)
+- SwapManager AVS: `TBD`
+- UniversalPrivacyHook: `TBD`
+- SimpleBoringVault: `TBD`
 
-### 1. ⚠️ Nonce Mismatch ❌💥
+### Sepolia Testnet
+- SwapManager AVS: `0x...`
+- Pyth Entropy: `0x41c9e39574F40Ad34c79f1C99B66A45eFB830d4c`
+- Pyth Oracle: `0x694AA1769357215DE4FAC081bf1f309aDC325306`
 
-MetaMask tracks wallet nonces (the number of transactions sent from a wallet). However, if you restart your Hardhat node, the nonce is reset on the dev node, but MetaMask does not update its internal nonce tracking. This discrepancy causes a nonce mismatch error.
+## 🧪 Testing
 
-### 2. ⚠️ View Function Call Result Mismatch ❌💥
+```bash
+# Run unit tests
+npm test
 
-MetaMask caches the results of view function calls. If you restart your Hardhat node, MetaMask may return outdated cached data corresponding to a previous instance of the node, leading to incorrect results.
+# Run integration tests
+npm run test:integration
 
-### ✅ How to Fix Nonce Mismatch:
+# Test with coverage
+npm run coverage
+```
 
-To fix the nonce mismatch error, simply clear the MetaMask cache:
+## 📊 How It Works
 
-1. Open the MetaMask browser extension.
-2. Select the Hardhat network.
-3. Go to Settings > Advanced.
-4. Click the "Clear Activity Tab" red button to reset the nonce tracking.
+1. **User submits encrypted trade intent** → FHE ensures privacy
+2. **Hook batches intents** → Reduces gas costs
+3. **Pyth Entropy selects operators** → Fair, random selection
+4. **Operators decrypt and match orders** → Off-chain processing
+5. **Consensus on settlement** → Multi-operator attestation
+6. **Pyth oracles calculate USD values** → Accurate pricing
+7. **Vault executes trades** → On-chain settlement
 
-The correct way to do this is also explained [here](https://docs.metamask.io/wallet/how-to/run-devnet/).
+## 🛡️ Security Features
 
-### ✅ How to Fix View Function Return Value Mismatch:
+- **FHE Encryption**: Trade details never exposed
+- **Pyth Entropy Randomness**: Manipulation-resistant operator selection
+- **Multi-Operator Consensus**: No single point of trust
+- **Pyth Price Oracles**: Tamper-resistant price feeds
+- **EigenLayer Slashing**: Economic security guarantees
 
-To fix the view function result mismatch:
+## 📚 Documentation
 
-1. Restart the entire browser. MetaMask stores its cache in the extension's memory, which cannot be cleared by simply clearing the browser cache or using MetaMask's built-in cache cleaning options.
+- [Architecture Overview](./docs/architecture.md)
+- [FHE Integration Guide](./docs/fhe-guide.md)
+- [Pyth Integration](./docs/pyth-integration.md)
+- [AVS Operator Guide](./docs/operator-guide.md)
 
-By following these steps, you can ensure that MetaMask syncs correctly with your Hardhat node and avoid potential issues related to nonces and cached view function results.
+## 🔗 External Documentation
 
-## Project Structure Overview
+- [Zama FHEVM Documentation](https://docs.zama.ai/protocol/solidity-guides/)
+- [Pyth Network Documentation](https://docs.pyth.network/)
+- [Uniswap V4 Documentation](https://docs.uniswap.org/contracts/v4/overview)
+- [EigenLayer Documentation](https://docs.eigenlayer.xyz/)
 
-### Key Files/Folders
+## 🤝 Contributing
 
-- **`<root>/packages/site/fhevm`**: This folder contains the essential hooks needed to interact with FHEVM-enabled smart contracts. It is meant to be easily copied and integrated into any FHEVM + React project.
+We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
 
-- **`<root>/packages/site/hooks/useFHECounter.tsx`**: A simple React custom hook that demonstrates how to use the `useFhevm` hook in a basic use case, serving as an example of integration.
+## 📄 License
 
-### Secondary Files/Folders
+This project is licensed under the BSD-3-Clause-Clear License - see the [LICENSE](LICENSE) file for details.
 
-- **`<root>/packages/site/hooks/metamask`**: This folder includes hooks designed to manage the MetaMask Wallet provider. These hooks can be easily adapted or replaced to support other wallet providers, following the EIP-6963 standard,
-- Additionally, the project is designed to be flexible, allowing developers to easily replace `ethers.js` with a more React-friendly library of their choice, such as `Wagmi`.
+## 🌐 Community
 
-## Documentation
+- [Discord](https://discord.gg/copyx)
+- [Twitter](https://twitter.com/copyxprotocol)
+- [GitHub Issues](https://github.com/consentsam/CopyX/issues)
 
-- [Hardhat + MetaMask](https://docs.metamask.io/wallet/how-to/run-devnet/): Set up your local devnet step by step using Hardhat and MetaMask.
-- [FHEVM Documentation](https://docs.zama.ai/protocol/solidity-guides/)
-- [FHEVM Hardhat](https://docs.zama.ai/protocol/solidity-guides/development-guide/hardhat)
-- [@zama-fhe/relayer-sdk Documentation](https://docs.zama.ai/protocol/relayer-sdk-guides/)
-- [Setting up MNEMONIC and INFURA_API_KEY](https://docs.zama.ai/protocol/solidity-guides/getting-started/setup#set-up-the-hardhat-configuration-variables-optional)
-- [React Documentation](https://reactjs.org/)
-- [FHEVM Discord Community](https://discord.com/invite/zama)
-- [GitHub Issues](https://github.com/zama-ai/fhevm-react-template/issues)
+## ⚠️ Disclaimer
 
-## License
-
-This project is licensed under the BSD-3-Clause-Clear License - see the LICENSE file for details.
+CopyX is currently in development. Use at your own risk. Always verify contract addresses and conduct your own research before interacting with the protocol.
